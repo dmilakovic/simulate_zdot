@@ -7,13 +7,13 @@ Created on Mon Feb 13 15:23:42 2023
 """
 
 import numpy as np
-import jax.numpy as jnp
+# import jax.numpy as jnp
 from fitsio import FITS
-import vputils.profiles as profile
-import vputils.plot as vplt
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import os
 
-hdul=FITS('/Users/dmilakov/software/QSOSIM10/mockspectra/mockspec.fits')
+hdul=FITS('./mockspec.fits')
 linelist = hdul[3].read()
 
 
@@ -149,57 +149,151 @@ def spectrum_after_t(t,linelist,zmin=2.9,zmax=3.2,z_step=5e-5,
     
     return W,Y
 
+def setup_plot_params():
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['axes.labelpad'] = 4.0
+    mpl.rcParams['xtick.top'] =            True   # draw ticks on the top side
+    mpl.rcParams['xtick.bottom'] =        True    # draw ticks on the bottom side
+    mpl.rcParams['xtick.labeltop'] =      False   # draw label on the top
+    mpl.rcParams['xtick.labelbottom'] =   True    # draw label on the bottom
+    mpl.rcParams['xtick.major.size'] =     3.5     # major tick size in points
+    mpl.rcParams['xtick.minor.size'] =     2       # minor tick size in points
+    mpl.rcParams['xtick.major.width'] =    0.8     # major tick width in points
+    mpl.rcParams['xtick.minor.width'] =    0.6     # minor tick width in points
+    mpl.rcParams['xtick.major.pad'] =     3.5     # distance to major tick label in points
+    mpl.rcParams['xtick.minor.pad'] =     3.4     # distance to the minor tick label in points
+    mpl.rcParams['xtick.color'] =         "black"   # color of the tick labels
+    mpl.rcParams['xtick.labelsize'] =      "medium"  # fontsize of the tick labels
+    mpl.rcParams['xtick.direction'] =      "in"     # direction: {in, out, inout}
+    mpl.rcParams['xtick.minor.visible'] =  True   # visibility of minor ticks on x-axis
+    mpl.rcParams['xtick.major.top'] =      True    # draw x axis top major ticks
+    mpl.rcParams['xtick.major.bottom'] =   True    # draw x axis bottom major ticks
+    mpl.rcParams['xtick.minor.top'] =      True    # draw x axis top minor ticks
+    mpl.rcParams['xtick.minor.bottom'] =   True    # draw x axis bottom minor ticks
+    mpl.rcParams['xtick.alignment'] =     "center"  # alignment of xticks
+    
+    mpl.rcParams['ytick.left'] =           True    # draw ticks on the left side
+    mpl.rcParams['ytick.right'] =          True   # draw ticks on the right side
+    mpl.rcParams['ytick.labelleft'] =      True    # draw tick labels on the left side
+    mpl.rcParams['ytick.labelright'] =     False   # draw tick labels on the right side
+    mpl.rcParams['ytick.major.size'] =     3.5     # major tick size in points
+    mpl.rcParams['ytick.minor.size'] =     2       # minor tick size in points
+    mpl.rcParams['ytick.major.width'] =    0.8     # major tick width in points
+    mpl.rcParams['ytick.minor.width'] =    0.6     # minor tick width in points
+    mpl.rcParams['ytick.major.pad'] =      3.5     # distance to major tick label in points
+    mpl.rcParams['ytick.minor.pad'] =      3.4     # distance to the minor tick label in points
+    mpl.rcParams['ytick.color'] =          "black"   # color of the tick labels
+    mpl.rcParams['ytick.labelsize'] =      "medium"  # fontsize of the tick labels
+    mpl.rcParams['ytick.direction'] =      "in"      # direction: {in, out, inout}
+    mpl.rcParams['ytick.minor.visible'] =  False   # visibility of minor ticks on y-axis
+    mpl.rcParams['ytick.major.left'] =     True    # draw y axis left major ticks
+    mpl.rcParams['ytick.major.right'] =    True    # draw y axis right major ticks
+    mpl.rcParams['ytick.minor.left'] =     True    # draw y axis left minor ticks
+    mpl.rcParams['ytick.minor.right'] =    True    # draw y axis right minor ticks
+    mpl.rcParams['ytick.alignment'] =      "center_baseline"  # alignment of yticks
+
+    return None
+
+def get_figax(*args,**kwargs):
+    _ = setup_plot_params()
+    figure,ax = plt.subplots(1,1,figsize = (6,4),*args,**kwargs)
+    ax.set_xlabel("Wavelength "+r"(${\rm \AA}$)")
+    figure.text(0.80,0.03,'D. Milaković 2023',fontsize=8,horizontalalignment='left',
+                transform=figure.transFigure)
+    return figure, ax
+
 def plot_spectral_ratio(t,linelist,zmin=2.9,zmax=3.2,z_step=5e-5,
                      z_obs=0.,H0=70.,OM=0.3,OL=0.7,plot_zero_time=False,
-                     identifier=None,dirname=None,save=False):
-    
-    figure = vplt.Figure(1, 1,figsize=(6,4),top=0.92,left=0.12)
-    ax = figure.ax()
+                     identifier=None,dirname='ratio',save=False):
+    figure, ax = get_figax()
     W,Y = spectrum_after_t(t, linelist,zmin,zmax,z_step,z_obs,H0,OM,OL)
     W,Y0 = spectrum_after_t(0, linelist,zmin,zmax,z_step,z_obs,H0,OM,OL)
-    ax.plot(W,Y/Y0-1,drawstyle='steps-mid')
+    ax.plot(W,Y/Y0-1,drawstyle='steps-mid',c='k',lw=1.5)
     
-    
-    ax.set_xlabel("Wavelength "+r"(${\rm \AA}$)")
     ax.set_ylabel(r"Flux ratio $-$ 1")
-    figure.scinotate(0, 'y',bracket='round')
+    scinotate(ax, 'y',bracket='round')
 
     if t>10:
         ax.set_title(f"Elapsed time = {t:12,.0f} years")
     else:
         ax.set_title(f"Elapsed time = {t:12,.2f} years")
-        
+    figure.tight_layout()
+    
     if save:
-        basedir = '/Users/dmilakov/presentations/plots/zdot_cartoon/spec_ratio/'
+        basedir = './images/'
         figname = f"{identifier}.png"
         path = os.path.join(*[basedir,dirname,figname])
-        figure.save(path,dpi=400)
+        figure.savefig(path,dpi=400)
+    return
         
 def plot_spectrum_at_t(t,linelist,zmin=2.9,zmax=3.2,z_step=5e-5,
                      z_obs=0.,H0=70.,OM=0.3,OL=0.7,plot_zero_time=False,
-                     identifier=None,dirname=None,save=False):
+                     identifier=None,dirname='zdot',save=False):
     
-    figure = vplt.Figure(1, 1,figsize=(6,4),top=0.92)
-    ax = figure.ax()
+    figure, ax = get_figax()
     W,Y = spectrum_after_t(t, linelist,zmin,zmax,z_step,z_obs,H0,OM,OL)
     
-    ax.plot(W,Y,drawstyle='steps-mid')
+    ax.plot(W,Y,c='k')
     if plot_zero_time:
         W,Y_ = spectrum_after_t(0, linelist,zmin,zmax,z_step,z_obs,H0,OM,OL)
-        ax.plot(W,Y_,drawstyle='steps-mid',lw=0.5,c='grey',zorder=0)
-    ax.set_xlabel("Wavelength "+r"(${\rm \AA}$)")
+        ax.plot(W,Y_,lw=0.5,c='grey',zorder=0)
+    ax.set_ylim(-0.05,1.05)
     ax.set_ylabel("Flux (normalised)")
     if t>10:
         ax.set_title(f"Elapsed time = {t:12,.0f} years")
     else:
         ax.set_title(f"Elapsed time = {t:12,.2f} years")
-        
+    figure.tight_layout()
     if save:
-        basedir = '/Users/dmilakov/presentations/plots/zdot_cartoon/images/'
+        basedir = './images/'
         figname = f"{identifier}.png"
-        path = os.path.join(*[basedir,figname])
-        figure.save(path,dpi=400)
+        path = os.path.join(*[basedir,dirname,figname])
+        figure.savefig(path,dpi=400)
+    return
+
+def scinotate(ax,axis,exp=None,dec=1,bracket='square'):
+    '''
+    Args:
+    ----
+    ax (matplotlib.Axes instance)
+    axis (str) : 'x' or 'y'
+    exp (int) : exponential
+    dec (int) : number of decimal points
+    bracket (str) : 'round' or 'square'
+    '''
+    from matplotlib import ticker
+
+    axsc = getattr(ax,'{0}axis'.format(axis))
     
+    braleft = '[' 
+    brarigh = ']'
+    if bracket == 'round':
+        braleft = '('
+        brarigh = ')'
+    
+    oldlbl = getattr(ax,'get_{0}label'.format(axis))()
+    loc    = oldlbl.find(brarigh)
+    axlim  = getattr(ax,'get_{0}lim'.format(axis))()
+    exp    = exp if exp is not None else np.floor(np.log10(axlim[1]))
+    axsc.set_major_formatter(ticker.FuncFormatter(lambda x,y : sciformat(x,y,exp,dec)))
+    print(oldlbl, loc)
+    
+    if loc > 0:
+        newlbl = oldlbl[:loc] + \
+            r' $\times 10^{{{exp:0.0f}}}${br}'.format(exp=exp,br=brarigh)
+    else:
+        newlbl = oldlbl + \
+            r' {bl}$\times 10^{{{exp:.0f}}}${br}'.format(exp=exp,br=brarigh,bl=braleft)
+    print(newlbl)
+    set_lbl = getattr(ax,'set_{0}label'.format(axis))
+    set_lbl(newlbl)
+    return 
+def sciformat(x,y,exp,dec):
+    if x==0:
+        return ('{num:.{width}f}'.format(num=x,width=dec))
+    return ('{num:.{width}f}'.format(num=x/10**exp,width=dec))
+
+
 def main(tmin,tmax,frames):
     wmin = 4920; zmin=wmin/l0 -1
     wmax = 4960; zmax=wmax/l0 - 1
@@ -211,5 +305,4 @@ def main(tmin,tmax,frames):
         else:
             t = T[i-1]
         plot_spectrum_at_t(t,linelist,zmin,zmax,plot_zero_time=True,
-                           identifier=f'{i:04d}',dirname='test',save=True)
-    
+                           identifier=f'{i:04d}',dirname='zdot',save=True)

@@ -1,0 +1,1 @@
+ffmpeg -framerate 10 -pattern_type glob -i './images/zdot/*.png' -c:v mpeg4 -pix_fmt yuv420p zdot.mp4
